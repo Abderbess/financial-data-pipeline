@@ -175,8 +175,3 @@ lignes ni laisser un état à moitié écrit.
 Les tests sont dans `tests/test_retry.py` (classement des erreurs, succès après deux erreurs, abandon,
 aucun retry sur `IntegrityError`) et `tests/test_retry_pipeline.py` (une erreur de verrou simulée suivie
 d'une réinsertion réussie, et un vrai verrou SQLite tenu par une deuxième connexion).
-
-## Ce qui manque
-
-Je n'ai pas fait les bonus (PostgreSQL, CI GitHub Actions, S3, logging, ruff). Je ne gère pas non plus
-le multi-devises : les agrégats ne sont pas indexés par `(iban, devise)`.

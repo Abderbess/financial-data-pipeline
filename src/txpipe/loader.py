@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import io
 from collections.abc import Mapping
 from datetime import datetime
@@ -70,7 +71,7 @@ def load_transactions(content: str) -> list[Transaction]:
     transactions: list[Transaction] = []
     errors: list[str] = []
     for row in reader:
-        if not row: 
+        if not row:  # ligne vide : on l'ignore
             continue
         line = reader.line_num
         if len(row) != len(header):
@@ -81,6 +82,11 @@ def load_transactions(content: str) -> list[Transaction]:
         except InvalidRowError as exc:
             errors.append(str(exc))
 
-    if errors:  
+    if errors:  # rejet global : une seule erreur et tout le fichier est refusé
         raise InvalidFileError(errors)
     return transactions
+
+
+def file_sha256(content: bytes) -> str:
+    """Empreinte du CONTENU du fichier (et non de son nom)."""
+    return hashlib.sha256(content).hexdigest()

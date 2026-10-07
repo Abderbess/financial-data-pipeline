@@ -35,6 +35,11 @@ def parse_row(fields: Mapping[str, str], line: int) -> Transaction:
     except InvalidOperation:
         raise InvalidRowError(f"ligne {line}: montant non numérique: {fields['montant']!r}") from None
 
+    if not montant.is_finite():
+        raise InvalidRowError(f"ligne {line}: montant non fini: {fields['montant']!r}")
+    if montant <= 0:
+        raise InvalidRowError(f"ligne {line}: montant doit être > 0: {fields['montant']!r}")
+
     return Transaction(
         datetime_transaction=moment,
         iban_origine=fields["iban_origine"],
@@ -61,7 +66,7 @@ def load_transactions(content: str) -> list[Transaction]:
     transactions: list[Transaction] = []
     errors: list[str] = []
     for row in reader:
-        if not row:  
+        if not row:
             continue
         line = reader.line_num
         if len(row) != len(header):
@@ -72,6 +77,6 @@ def load_transactions(content: str) -> list[Transaction]:
         except InvalidRowError as exc:
             errors.append(str(exc))
 
-    if errors:  
+    if errors:
         raise InvalidFileError(errors)
     return transactions

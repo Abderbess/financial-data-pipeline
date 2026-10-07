@@ -1,5 +1,6 @@
 import argparse
 import sqlite3
+import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,6 +10,7 @@ from txpipe import db
 from txpipe.generate import generate_csv_files
 from txpipe.loader import InvalidFileError, file_sha256, load_transactions
 from txpipe.processing import compute_results
+from txpipe.retry import retry
 
 Status = Literal["inserted", "skipped", "failed"]
 
@@ -20,15 +22,26 @@ class FileReport:
     detail: str
 
 
-def process_file(path: Path, conn: sqlite3.Connection) -> FileReport:
+def process_file(
+    path: Path,
+    conn: sqlite3.Connection,
+    *,
+    attempts: int = 3,
+    sleep: Callable[[float], None] = time.sleep,
+) -> FileReport:
     """Traite UN fichier. Les erreurs attendues finissent dans le rapport, elles ne plantent pas tout."""
     try:
         raw = path.read_bytes()
         sha = file_sha256(raw)
         transactions = load_transactions(raw.decode("utf-8"))
         results = compute_results(transactions)
-        inserted = db.insert_file(
-            conn, name=path.name, sha256=sha, transactions=transactions, results=results
+        # Seule l'insertion est rejouée, et seulement pour une erreur transitoire (base verrouillée)
+        inserted = retry(
+            lambda: db.insert_file(
+                conn, name=path.name, sha256=sha, transactions=transactions, results=results
+            ),
+            attempts=attempts,
+            sleep=sleep,
         )
     except InvalidFileError as exc:
         return FileReport(path.name, "failed", "fichier invalide: " + " | ".join(exc.errors))
@@ -49,6 +62,8 @@ def run(
     generate: bool = True,
     n_files: int = 3,
     seed: int = 42,
+    attempts: int = 3,
+    sleep: Callable[[float], None] = time.sleep,
     out: Callable[[str], None] = print,
 ) -> int:
     """Lance toute la pipeline. Retourne le code de retour (0 = OK, 1 = échec, 2 = rien à faire)."""
@@ -65,7 +80,7 @@ def run(
     conn = db.connect(db_path)
     try:
         db.init_schema(conn)
-        reports = [process_file(p, conn) for p in files]
+        reports = [process_file(p, conn, attempts=attempts, sleep=sleep) for p in files]
     finally:
         conn.close()
 

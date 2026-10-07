@@ -44,10 +44,12 @@ def to_centimes(montant: Decimal) -> int:
     return int((montant * 100).to_integral_exact())
 
 
-def connect(path: str | Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(path, isolation_level=None)
+def connect(path: str | Path, *, timeout: float = 5.0) -> sqlite3.Connection:
+    # isolation_level=None : on écrit nous-mêmes BEGIN / COMMIT / ROLLBACK
+    # timeout : temps d'attente (en secondes) si la base est verrouillée
+    conn = sqlite3.connect(path, timeout=timeout, isolation_level=None)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA foreign_keys = ON")  # à refaire sur CHAQUE connexion
     return conn
 
 
@@ -116,12 +118,13 @@ def insert_file(
     if not transactions:
         raise ValueError("insert_file: aucune transaction")
 
-  
+    # BEGIN IMMEDIATE : on prend tout de suite le verrou d'écriture, donc personne
+    # d'autre ne peut écrire pendant qu'on vérifie puis qu'on insère.
     conn.execute("BEGIN IMMEDIATE")
     try:
         deja = conn.execute("SELECT 1 FROM fichiers WHERE sha256 = ?", (sha256,)).fetchone()
         if deja is not None:
-            conn.execute("ROLLBACK") 
+            conn.execute("ROLLBACK")  # rien à écrire
             return False
 
         cursor = conn.execute(
@@ -134,9 +137,9 @@ def insert_file(
 
         _insert_transactions(conn, fichier_id, transactions, results.over_threshold)
         _insert_aggregates(conn, fichier_id, results)
-        conn.execute("COMMIT") 
+        conn.execute("COMMIT")  # tout s'est bien passé : on valide
     except BaseException:
         if conn.in_transaction:
-            conn.execute("ROLLBACK")  
+            conn.execute("ROLLBACK")  # la moindre erreur : on annule TOUT
         raise
     return True

@@ -61,7 +61,7 @@ def load_transactions(content: str) -> list[Transaction]:
     transactions: list[Transaction] = []
     errors: list[str] = []
     for row in reader:
-        if not row:  # ligne vide : on l'ignore
+        if not row:  
             continue
         line = reader.line_num
         if len(row) != len(header):
@@ -72,6 +72,6 @@ def load_transactions(content: str) -> list[Transaction]:
         except InvalidRowError as exc:
             errors.append(str(exc))
 
-    if errors:  # rejet global : une seule erreur et tout le fichier est refusé
+    if errors:  
         raise InvalidFileError(errors)
     return transactions

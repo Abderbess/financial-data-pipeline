@@ -8,7 +8,7 @@ HEADER = [
     "iban_destinataire", "pays_destinataire", "montant", "devise",
 ]
 
-# (iban, pays, banque) : seulement 3 origines, donc des IBAN reviennent forcément
+
 ORIGINS = [
     ("FR7630006000011234567890189", "FR", "BNPPARIBAS"),
     ("GB29NWBK60161331926819", "GB", "NATWEST"),
@@ -35,7 +35,7 @@ def generate_rows(rng: random.Random, n_rows: int, start: datetime) -> list[list
         iban, pays, banque = rng.choice(ORIGINS)
         dest_iban, dest_pays = rng.choice(DESTINATIONS)
         if i < 2:
-            cents = rng.randint(500_001, 900_000)  # les 2 premières lignes dépassent 5000
+            cents = rng.randint(500_001, 900_000)  
         else:
             cents = rng.randint(1_000, 600_000)
         rows.append([
@@ -56,7 +56,7 @@ def write_csv(path: Path, rows: list[list[str]]) -> None:
 
 
 if __name__ == "__main__":
-    rng = random.Random(42)  # graine fixe : mêmes fichiers à chaque lancement
+    rng = random.Random(42)  
     for index in range(1, 4):
         rows = generate_rows(rng, rng.randint(5, 10), datetime(2024, 3, index, 8, 0))
         write_csv(Path(f"data/transactions_{index:02d}.csv"), rows)

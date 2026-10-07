@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from decimal import Decimal
 
-from txpipe.models import Transaction
+from txpipe.models import ProcessingResults, Transaction
 
 SEUIL = Decimal("5000")
 
@@ -36,3 +36,11 @@ def received_by_iban(transactions: Sequence[Transaction]) -> dict[str, Decimal]:
 def flag_over_threshold(transactions: Sequence[Transaction]) -> list[bool]:
     """Un drapeau par transaction : True si le montant dépasse STRICTEMENT 5000."""
     return [tx["montant"] > SEUIL for tx in transactions]
+
+def compute_results(transactions: Sequence[Transaction]) -> ProcessingResults:
+    return ProcessingResults(
+        sent_by_iban=sent_by_iban(transactions),
+        sent_by_bank=sent_by_bank(transactions),
+        received_by_iban=received_by_iban(transactions),
+        over_threshold=flag_over_threshold(transactions),
+    )

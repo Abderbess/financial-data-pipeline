@@ -22,7 +22,7 @@ def test_valid_file_is_loaded() -> None:
 def test_non_numeric_amount_rejects_whole_file() -> None:
     mauvaise = "2024-03-01T10:00:00,FR_A,FR,BNP,DE_X,DE,abc,EUR"
     with pytest.raises(InvalidFileError) as info:
-        load_transactions(make_csv(BONNE, mauvaise))
+        load_transactions(make_csv(BONNE, mauvaise)) 
     assert "ligne 3" in str(info.value)
     assert "montant" in str(info.value)
 
@@ -34,7 +34,7 @@ def test_unreadable_date_is_rejected() -> None:
 
 
 def test_missing_column_in_row_is_rejected() -> None:
-    mauvaise = "2024-03-01T10:00:00,FR_A,FR,BNP,DE_X,DE,10.00"
+    mauvaise = "2024-03-01T10:00:00,FR_A,FR,BNP,DE_X,DE,10.00" 
     with pytest.raises(InvalidFileError, match="colonnes"):
         load_transactions(make_csv(mauvaise))
 
@@ -49,4 +49,10 @@ def test_missing_column_in_header_is_rejected() -> None:
 def test_impossible_amounts_are_rejected(valeur: str) -> None:
     mauvaise = f"2024-03-01T10:00:00,FR_A,FR,BNP,DE_X,DE,{valeur},EUR"
     with pytest.raises(InvalidFileError):
+        load_transactions(make_csv(mauvaise))
+
+
+def test_more_than_two_decimals_is_rejected() -> None:
+    mauvaise = "2024-03-01T10:00:00,FR_A,FR,BNP,DE_X,DE,12.345,EUR"
+    with pytest.raises(InvalidFileError, match="décimales"):
         load_transactions(make_csv(mauvaise))
